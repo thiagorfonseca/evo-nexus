@@ -1,0 +1,2700 @@
+BLUEPRINT FOUNDER · GUIA DE IMPLEMENTAÇÃO
+Blueprint Founder:
+Implementação Evolution
+Método de implementação premium — do zero à operação real com o
+ecossistema Evolution
+Formato Guia de execução prático Stack 6 serviços + PostgreSQL + Redis Módulos 11 módulos + checklists + referências
+NESTA PÁGINA
+1. Módulo 0 — Introdução e contexto 2. Módulo 1 — Visão do ecossistema
+3. Guia Meta — WhatsApp, Instagram,
+Messenger
+4. Módulo 2 — Pré-requisitos
+5. Módulo 3 — Setup base 6. Módulo 4 — Primeiro fluxo funcional
+7. Módulo 5 — Arquitetura de produção 8. Módulo 6 — Integrações essenciais
+9. Módulo 7 — Operação e segurança 10. Módulo 8 — Modelos de negócio
+11. Módulo 9 — Checklists e templates 12. Módulo 10 — Glossário e referências
+13. EvoNexus — O time de IA que opera o
+negócio
+14. Roadmap 7 dias
+ATALHO PARA QUEM JÁ TEM BASE TÉCNICA
+Pré-requisito: conforto com terminal, Docker instalado e noção de variáveis de
+ambiente. Se ainda não tem esses pontos, leia primeiro os módulos 0, 1 e 2.
+Se já tem a base, pode ir direto ao ponto:
+1. Setup base (Módulo 3) — ambiente rodando em poucos comandos
+2. Primeiro fluxo (Módulo 4) — bot com IA respondendo no Telegram
+3. Validar — mensagem enviada, IA respondeu, conversa no dashboard
+Após validar, volte aos módulos 0, 1 e 2 para entender o ecossistema completo antes de ir para
+produção. Os módulos 5 a 10 aprofundam arquitetura, integrações e operação.
+MÓDULO 0
+Introdução e contexto
+O que é este material, para quem foi criado e como usá-lo.
+O que é o Blueprint Founder
+O Blueprint Founder é um método de implementação do ecossistema Evolution. Ele foi
+criado para guiar você do zero até uma operação funcional em produção — com
+arquitetura clara, fluxos validados e decisões fundamentadas.
+Ele não é documentação técnica crua, não é apostila, não é curso em texto. É um
+sistema guiado de execução com lógica progressiva.
+Este material mostra o caminho completo. Na prática, cada projeto tem variações, edge cases e
+decisões que dependem do contexto. O Pro Support existe para isso — acompanhamento
+contínuo com quem conhece o ecossistema por dentro.
+O QUE O BLUEPRINT É
+Método de implementação
+Guia operacional prático
+Atalho para produção
+Material de referência consultável
+O QUE O BLUEPRINT NÃO É
+Documentação técnica solta
+Curso teórico ou acadêmico
+PDF genérico de tutoriais
+Replica da documentação oficial
+Para quem foi criado
+Implementadores técnicos que precisam colocar a Evolution em produção
+Agências e consultorias que oferecem automação e atendimento com IA
+Equipes internas estruturando operação de atendimento digital
+Empreendedores técnicos criando soluções sobre o ecossistema
+Nível técnico esperado: este material assume conforto básico com terminal (linha de
+comando), noção de Docker e capacidade de editar arquivos .env . Você não precisa ser
+dev full-time — mas precisa estar confortável com ferramentas técnicas. Se Docker é
+novidade, recomendamos o tutorial oficial do Docker antes de continuar para o Módulo 3.
+Como consumir o material
+Cada módulo foi projetado com: objetivo, pré-requisitos, passo a passo, erros comuns e
+validação. Siga a sequência — não pule etapas.
+PRÓXIMO Módulo 1 — Visão do ecossistema →
+// ECOSSISTEMA — VISÃO E PREPARAÇÃO
+MÓDULO 1
+Visão do ecossistema Evolution
+Como as peças se conectam e qual o papel de cada componente.
+A Evolution não é uma ferramenta isolada. É um ecossistema completo de atendimento
+digital com IA, composto por serviços especializados que trabalham juntos. Pensar nela
+como "uma API de WhatsApp" é subutilizar radicalmente o que ela oferece.
+Arquitetura de serviços
+O ecossistema é composto por 6 serviços principais que rodam como containers
+independentes, mais a infraestrutura de suporte:
+SERVIÇO STACK PORTA PAPEL
+evo-auth Ruby/Rails
+7.1
+3001 Autenticação, RBAC, OAuth2, MFA
+evo-crm
+Ruby/Rails
+7.1
+3000 CRM core — conversas, contatos, inboxes, pipelines
+evo-core Go 1.24 / Gin 5555 Gestão de agentes IA, API keys, MCP, ferramentas
+evo-
+processor
+Python /
+FastAPI
+8000 Execução de agentes IA, sessões, chat, A2A
+evo-bot-
+runtime
+Go 8080 Orquestração de bots — debounce, roteamento e
+execução de agentes via WebSocket
+evo-frontend
+React 19 /
+Vite
+5173 Interface web — dashboard completo
+Infraestrutura de suporte
+COMPONENTE IMAGEM FUNÇÃO
+PostgreSQL 16 pgvector/pgvector:pg16 Banco principal com suporte a vetores (pgvector)
+Redis redis:alpine Cache, filas Sidekiq, WebSocket, debounce de IA
+MailHog mailhog/mailhog Teste de e-mail em desenvolvimento (SMTP + UI)
+Integrações oficiais da Meta (WhatsApp, Instagram, Facebook)
+O CRM já possui integração nativa com os canais oficiais da Meta, sem necessidade
+de serviços adicionais:
+WHATSAPP CLOUD API
+Integração oficial via
+Meta Business
+Recomendado para
+produção
+Requer conta Meta
+Business verificada
+Número de telefone
+dedicado
+INSTAGRAM DIRECT
+Mensagens diretas
+do Instagram
+Via Instagram Graph
+API
+Requer conta
+Instagram Business
+conectada ao Meta
+Business
+FACEBOOK MESSENGER
+Messenger via
+Facebook Page
+Requer Facebook
+App com permissões
+aprovadas
+Suporta também
+Instagram via campo
+instagram
+_
+id
+Para produção e uso comercial, utilize sempre os canais oficiais da Meta. As integrações de
+WhatsApp, Instagram e Facebook já estão embutidas no CRM — basta configurar as
+credenciais do Meta Business. Veja o tutorial completo de configuração no guia de setup da
+Meta mais adiante neste módulo.
+Conectores WhatsApp não-oficiais (opcionais)
+Além da integração oficial, existem conectores opcionais e não-oficiais que usam
+bibliotecas de engenharia reversa para conectar ao WhatsApp via QR Code:
+EVOLUTION-API (NODE.JS) — NÃO-OFICIAL
+Conector via Baileys (biblioteca
+não-oficial)
+Conexão por QR Code, sem
+aprovação da Meta
+Ecossistema mais maduro e
+amplamente usado
+EVOLUTION-GO (GO) — NÃO-OFICIAL
+Conector via whatsmeow (biblioteca
+não-oficial)
+Conexão por QR Code, sem
+aprovação da Meta
+Foco em alta performance e menor
+consumo de recursos
+Aviso importante: tanto Baileys (evolution-api) quanto whatsmeow (evolution-go) são
+bibliotecas não-oficiais que fazem engenharia reversa do protocolo WhatsApp. Isso viola os
+Termos de Serviço da Meta e pode resultar em banimento permanente do número. Para
+operações em produção e uso comercial, utilize sempre a integração oficial via WhatsApp
+Cloud API.
+Como os serviços se comunicam
+Fluxo principal de uma mensagem DIAGRAMA
+┌──────────┐ webhook ┌──────────┐ valida token ┌───────
+│ Canal │ ──────────────▶ │ evo-crm │ ───────────────▶ │ evo-
+│ WhatsApp │ │ :3000 │ ◀─────────────── │ :3001
+│ Telegram │ │ │ user válido │ │
+│ Web/API │ └────┬─────┘ └────────
+└──────────┘ │
+│ mensagem p/ bot
+▼
+┌──────────────┐ busca agente ┌───────
+│evo-processor │ ───────────────▶ │ evo-co
+│ :8000 │ ◀─────────────── │ :5555
+│ │ config + tools │
+└──────┬───────┘ └──────
+│
+│ resposta da IA
+▼
+┌──────────────┐ ActionCable ┌───────
+│ evo-crm │ ───────────────▶ │ fronten
+│ :3000 │ (WebSocket) │ :5173 │
+└──────┬───────┘ └───────
+│
+│ mensagem de saída
+▼
+┌──────────────┐
+│ Canal │
+│ (resposta) │
+└──────────────┘
+A comunicação entre serviços segue um padrão claro:
+Frontend → Auth: login, registro, validação de token JWT
+Frontend → CRM: todas as operações de negócio (conversas, contatos, inboxes)
+Frontend → Core: gestão de agentes IA, API keys, ferramentas
+Frontend → Processor: chat com agentes IA em tempo real
+CRM → Auth: validação de tokens em cada request (cache de 20s)
+CRM → Core: proxy de operações de agentes IA
+CRM → Processor: envia mensagens para bots processarem
+Processor → CRM: ações de agentes (transferência, mensagens internas)
+Todos os serviços compartilham um único banco PostgreSQL ( evo
+_
+community ). A edição
+community é single-tenant — uma conta, sem complexidade de multi-tenancy.
+Tipos de solução que você pode criar
+Atendimento automático com IA — agentes que respondem via WhatsApp, Telegram,
+web widget
+CRM de atendimento — gestão de conversas, equipes, filas, pipelines de vendas
+Automação de fluxos — regras automáticas, webhooks, integrações com sistemas
+externos
+Agentes multimodais — combinação de LLM + ferramentas + MCP + A2A
+Operação de suporte — handoff IA/humano, CSAT, relatórios, campanhas
+Plataforma de atendimento própria — operação interna com a marca Evolution
+(white-label não permitido na licença community)
+Validação: se você consegue explicar o papel de cada serviço e como eles se conectam,
+está pronto para o próximo módulo.
+PRÓXIMO Guia Meta — WhatsApp, Instagram, Messenger →
+GUIA META
+Configuração do Meta Business e Developer App
+Tutorial completo para configurar WhatsApp Cloud API, Instagram Direct e Facebook Messenger
+via canais oficiais da Meta.
+RESUMO RÁPIDO — O QUE VOCÊ VAI FAZER
+Parte 1: Criar e verificar Business Manager (conta da empresa na Meta)
+Parte 2: Criar app no Meta Developers (tipo Business, permanente)
+Parte 3: WhatsApp Cloud API (número, token permanente, webhooks,
+templates)
+Parte 4: Instagram Direct (permissões 2025, webhook)
+Parte 5: Facebook Messenger (Page Token, webhook)
+Parte 6: App Review (ir ao vivo para usuários externos)
+Parte 7: Regra de 24h e compliance
+Siga na ordem — cada etapa depende da anterior.
+Parte 1 — Meta Business Manager (Business Portfolio)
+O Business Manager (agora chamado Meta Business Portfolio) é o centro de controle
+de todos os ativos da sua empresa na Meta: páginas, contas de anúncio, WhatsApp
+Business Accounts, contas do Instagram Business, apps e usuários.
+Criar o Business Portfolio
+Erro mais comum: o nome da empresa no Business Manager não bate com o nome nos
+documentos oficiais. Isso é a causa nº 1 de rejeição na verificação. Use o nome legal exato,
+sem abreviações.
+Verificação da empresa
+A verificação é obrigatória para:
+Enviar mensagens de WhatsApp além do sandbox de teste
+Solicitar Advanced Access para qualquer permissão de API
+Usar número de telefone de produção
+Onde iniciar: Business Manager → Configurações → Central de Segurança → Iniciar
+Verificação.
+Documentos aceitos
+IDENTIDADE DA EMPRESA (1 OBRIGATÓRIO)
+Cartão CNPJ
+Contrato Social / Estatuto
+Inscrição Estadual / Municipal
+Alvará de funcionamento
+Certificado MEI (CCMEI)
+COMPROVANTE DE ENDEREÇO/TELEFONE
+Conta de luz, água ou internet no
+nome da empresa
+Extrato bancário empresarial
+Conta de telefone
+Deve estar no nome da empresa
+Não pode estar vencido
+Requisitos dos documentos:
+Formato: PDF, JPG ou PNG
+Alta resolução (mínimo 300 DPI — documento borrado é rejeitado automaticamente)
+Não pode estar vencido
+Nome no documento deve bater caractere por caractere com o Business Manager
+Prazo típico: aprovação automática em minutos a horas. Revisão manual pode levar até
+14 dias úteis.
+Motivos comuns de rejeição
+MOTIVO COMO CORRIGIR
+Nome da empresa diferente Alterar no BM para bater exatamente com o documento
+Documento borrado/baixa resolução Digitalizar novamente em 300+ DPI
+Documento vencido Enviar versão atualizada
+Endereço não consta no documento Enviar comprovante adicional (conta de luz/água)
+Site não mostra dados da empresa Adicionar nome legal, endereço e contato no site
+Telefone não bate Garantir que o telefone no BM é o mesmo do documento
+Dica: ative autenticação de dois fatores (2FA) na conta pessoal E no Business Portfolio
+antes de iniciar. Sem 2FA habilitado, várias operações da API retornam erro.
+Parte 2 — Criar o App no Meta Developers
+Atenção: o tipo do app (Business) é permanente e não pode ser alterado após a criação. Se
+escolher errado, precisa criar um novo app. Escolha sempre Business para integrações com
+canais da Meta.
+TIPO DE APP QUANDO USAR
+Business Para WhatsApp, Instagram, Messenger — sempre esse
+Consumer Apps para usuários finais (jogos, apps sociais)
+None Legado / propósito geral — evitar
+Anote o App ID — você vai usar em todas as configurações.
+Parte 3 — WhatsApp Cloud API
+Adicionar produto WhatsApp ao app
+Sandbox de teste (antes de produção)
+Após adicionar o WhatsApp, você recebe:
+Um número de teste (atribuído automaticamente pela Meta)
+Um token temporário (válido por 24 horas)
+Sandbox que pode enviar para até 5 números verificados
+O token temporário expira a cada 24h e serve apenas para testes. Para produção, você
+precisa de um token permanente via System User (veja abaixo).
+Registrar número de produção
+Vá em WhatsApp → Phone Numbers e clique em Add phone number:
+Display Name: nome visível para contatos — deve refletir a marca real da empresa
+Categoria: selecione a categoria do negócio e adicione descrição
+Número: insira o telefone (não pode estar ativo em nenhuma conta WhatsApp)
+Verificação: escolha SMS ou ligação, insira o código OTP de 6 dígitos
+Após verificado, anote o Phone Number ID — use esse nas chamadas de API, não o
+número real.
+Importante: o número precisa estar completamente limpo — não pode estar registrado em
+nenhuma conta WhatsApp (pessoal ou Business App). Se estava, delete a conta e aguarde
+até 72 horas.
+Gerar token permanente via System User
+O token permanente é essencial para produção. Sem ele, sua integração para de
+funcionar a cada 24h.
+ETAPA 1 — CRIAR SYSTEM USER
+Acesse Business Manager → Configurações → Usuários → System Users.
+Clique em Adicionar
+Nome: WhatsApp API Bot (ou qualquer nome descritivo)
+Role: Admin
+Clique em Create System User
+ETAPA 2 — ATRIBUIR ATIVOS (PASSO MAIS ESQUECIDO)
+Selecione o System User criado e clique em Assign Assets:
+TIPO DE ATIVO O QUE SELECIONAR NÍVEL
+Apps Seu Meta Developer App Full Control
+WhatsApp accounts Sua WABA Full Control
+Clique em Save. Sem essa atribuição, o token gerado não terá acesso a nada.
+ETAPA 3 — GERAR O TOKEN
+Com o System User selecionado:
+Clique em Generate New Token
+Selecione seu App no dropdown
+Token Expiration: Never
+Marque as permissões:
+whatsapp_
+business
+_
+management
+whatsapp_
+business
+_
+messaging
+Clique em Generate Token
+ETAPA 4 — COPIAR E ARMAZENAR
+Copie o token imediatamente. Ele não será exibido novamente. Armazene no
+.env ou em um gerenciador de segredos. Nunca commite no Git, nunca exponha
+em código client-side, nunca logue em texto plano.
+Se você perdeu o token sem copiar, não tem como recuperar. Revogue o antigo e gere um
+novo seguindo as mesmas etapas.
+Configurar webhooks do WhatsApp
+Webhooks são obrigatórios para receber mensagens, status e recibos de entrega.
+Vá em App Dashboard → WhatsApp → Configuration e clique em Edit ao lado de
+Webhook:
+Callback URL: a URL pública do seu CRM para receber webhooks
+Exemplo: https://api.seudominio.com/webhooks/whatsapp
+Verify Token: uma string secreta que você define — precisa ser consistente com a
+configuração no CRM
+Clique em Verify and Save. Após verificação, clique em Manage e assine os campos:
+Campos do webhook WhatsApp TEXT
+messages
+message
+_
+status
+Também é preciso assinar a WABA via API:
+Assinar WABA no webhook HTTP
+POST https://graph.facebook.com/v21.0/<WABA
+_
+ID>/subscribed
+_
+apps
+Authorization: Bearer <TOKEN
+_
+PERMANENTE>
+Limites de mensagens (tiers)
+TIER LIMITE (CONVERSAS EM 24H) COMO SUBIR
+Não verificado 250 Verificar a empresa
+Tier 1 1.000 Manter qualidade alta
+Tier 2 10.000 Manter qualidade alta
+Tier 3 100.000 Manter qualidade alta
+Tier 4 Ilimitado Histórico consistente de qualidade
+A promoção de tier é automática baseada na qualidade. Se usuários bloquearem ou
+denunciarem suas mensagens, o tier pode ser rebaixado.
+Templates de mensagem
+Mensagens iniciadas pelo negócio (fora da janela de 24h) obrigatóriamente precisam
+usar templates pré-aprovados:
+Regra 2025: templates de marketing devem incluir botão de opt-out. Instruções de texto não
+são mais suficientes e podem gerar flags de compliance.
+Billing
+Sem método de pagamento configurado, você só pode enviar no sandbox de teste.
+Configure em Business Manager → Configurações → Billing.
+Parte 4 — Instagram Direct
+Pré-requisitos
+Conta Instagram Business ou Instagram Creator (não pessoal)
+Conta Instagram conectada a uma Facebook Page
+App do tipo Business
+Adicionar produto Instagram ao app
+No Dashboard do app, vá em Add Products → Instagram → Set up. Em Instagram API
+with Instagram Login, você acessa a messaging API.
+Permissões necessárias (atualizadas 2025)
+Atenção: os nomes antigos ( instagram
+_
+basic , instagram
+_
+manage
+_
+messages ) foram
+descontinuados em janeiro de 2025. Use os novos nomes abaixo.
+PERMISSÃO PARA QUE SERVE
+instagram
+_
+business
+_
+basic Ler metadados da conta (username, ID, foto)
+instagram
+_
+business
+_
+manage
+_
+messages Receber e responder mensagens diretas
+human
+_
+agent Responder além da janela de 24 horas
+Webhook do Instagram
+Vá em App Dashboard → Webhooks (ou Instagram → Webhooks).
+Configure a Callback URL e o Verify Token
+Assine o objeto Instagram com os seguintes campos:
+Campos do webhook Instagram TEXT
+messages
+messaging_
+optins
+messaging_postbacks
+messaging_
+seen
+Rate limit Instagram (2025): limite de 200 chamadas por hora por token. Planeje cache e
+evite polling excessivo.
+Parte 5 — Facebook Messenger
+Pré-requisitos
+Uma Facebook Page (não perfil pessoal)
+A Page deve estar conectada ao seu Business Portfolio
+App do tipo Business
+Adicionar produto Messenger ao app
+Permissões necessárias
+PERMISSÃO PARA QUE SERVE
+pages
+_
+messaging Enviar e receber mensagens via Messenger da Page
+pages
+_
+manage
+_
+metadata Gerenciar assinaturas de webhook da Page
+Gerar Page Access Token
+Messenger usa Page Access Token, não User Token.
+Vá em Messenger → Settings → Access Tokens:
+Clique em Add or Remove Pages e conecte sua Facebook Page
+Selecione a Page no dropdown
+Clique em Generate Token — copie imediatamente
+Para token permanente, use System User (mesmo processo do WhatsApp) com a Page
+atribuída como ativo e permissão pages
+_
+messaging.
+Assinar a Page no app
+Assinar Page no webhook HTTP
+POST https://graph.facebook.com/v21.0/<PAGE
+_
+ID>/subscribed
+_
+apps
+?access
+_
+token=<PAGE
+_
+ACCESS
+_
+TOKEN>
+&subscribed
+_
+fields=messages,messaging_postbacks,messaging_
+optins,message
+_
+r
+Webhook do Messenger
+Vá em Messenger → Settings → Webhooks:
+Configure a Callback URL e o Verify Token
+Selecione a Page para assinar
+Assine os seguintes campos:
+Campos do webhook Messenger TEXT
+messages
+messaging_postbacks
+message
+_
+deliveries
+message
+_
+reads
+Parte 6 — App Review (ir ao vivo)
+Sem App Review, suas integrações só funcionam para usuários com role no app
+(Developer, Tester, Admin). Para atender usuários externos, você precisa de Advanced
+Access.
+Permissões que precisam de App Review
+CANAL PERMISSÕES
+WhatsAppwhatsapp_
+business
+_
+messaging , whatsapp_
+business
+_
+management
+Instagram
+instagram
+_
+business
+_
+basic , instagram
+_
+business
+_
+manage
+_
+messages ,
+human
+_
+agent
+Messenger pages
+_
+messaging , pages
+_
+manage
+_
+metadata
+O que preparar para a submissão
+Prazo típico: 5-7 dias úteis. Submissões incompletas: 2-4 semanas. Você recebe e-mail
+com resultado e pode resubmeter se rejeitado.
+Motivos comuns de rejeição no App Review
+REJEIÇÃO
+Meta não consegue acessar o app
+(sem credenciais de teste)
+Permissão não é visivelmente
+usada no app
+Política de privacidade ausente ou
+inacessível
+Ícone do app não configurado
+Screencast não mostra o uso da
+permissão
+COMO EVITAR
+Sempre fornecer login funcional
+para o revisor
+Gravar vídeo mostrando
+exatamente a feature que usa cada
+permissão
+Publicar política de privacidade em
+página pública do seu site
+Configurar ícone antes de submeter
+Ser específico nas instruções (ex:
+"faça login com user X, vá em tela
+Y, envie mensagem Z")
+Parte 7 — Regras de janela de 24h e compliance
+A regra de 24 horas é a mesma nos 3 canais da Meta:
+COMO FUNCIONA A JANELA DE 24H
+Quando o usuário envia mensagem, abre uma janela de 24 horas
+Dentro dessa janela, você pode enviar mensagens livres (qualquer conteúdo)
+Após 24h sem mensagem do usuário, a janela fecha
+WhatsApp: fora da janela, só templates pré-aprovados
+Instagram/Messenger: fora da janela, só com permissão human
+_
+agent ou
+Message Tags específicas
+Compliance obrigatório
+Referência rápida: URLs e permissões
+RECURSO URL
+Business Manager business.facebook.com
+Developer Portal developers.facebook.com
+WhatsApp Manager business.facebook.com/wa/manage
+Graph API Explorer developers.facebook.com/tools/explorer
+CANAL PERMISSÃO USO
+WhatsAppwhatsapp_
+business
+_
+messaging Enviar/receber mensagens
+WhatsAppwhatsapp_
+business
+_
+management Gerenciar WABA, templates, números
+Instagram instagram
+_
+business
+_
+basic Metadados da conta
+Instagram instagram
+_
+business
+_
+manage
+_
+messages DMs
+Instagram human
+_
+agent Respostas além de 24h
+Messenger pages
+_
+messaging Enviar/receber mensagens
+Messenger pages
+_
+manage
+_
+metadata Webhooks da Page
+Validação: se você tem Business Portfolio verificado, app criado como Business, produtos
+adicionados (WhatsApp/Instagram/Messenger), tokens permanentes gerados e webhooks
+configurados — está pronto para conectar os canais no CRM.
+PRÓXIMO Módulo 2 — Pré-requisitos e preparação →
+MÓDULO 2
+Pré-requisitos e preparação
+Tudo que precisa estar pronto antes de iniciar o setup.
+Conhecimento recomendado
+Conforto básico com terminal/linha de comando
+Entendimento básico de Docker e Docker Compose
+Noção de variáveis de ambiente e configuração de serviços
+Familiaridade com Git (clone, submodules)
+Noção básica de redes (portas, DNS, SSL)
+Requisitos técnicos mínimos
+AMBIENTE DE TESTES
+Docker Desktop ou Docker Engine
+Docker Compose v2+
+4 GB RAM livres (mínimo)
+10 GB disco livre
+Git com suporte a submodules
+Make (para usar o Makefile)
+AMBIENTE DE PRODUÇÃO
+VPS com 4+ vCPU e 8+ GB RAM
+50+ GB SSD
+Ubuntu 22.04+ ou equivalente
+Domínio com DNS controlável
+Certificado SSL (Let's Encrypt)
+Reverse proxy (Nginx/Traefik)
+Contas e credenciais necessárias
+ITEM PARA QUE SERVE QUANDO É NECESSÁRIO
+Provedor de LLM (OpenAI,
+Anthropic, Google, etc.)
+API key para agentes de
+IA Ao configurar agentes IA
+Meta Business / WhatsApp Cloud
+API
+Conexão oficial
+WhatsApp Para canal WhatsApp oficial
+Telegram BotFather Token do bot Para canal Telegram
+SMTP (SendGrid, Mailgun, etc.)
+Envio de e-mails em
+produção
+Para notificações e
+recuperação de senha
+Langfuse (opcional) Observabilidade de LLM
+Para monitorar custos e
+performance de IA
+Decisões que precisam ser tomadas antes
+Checklist de preparação
+Gerar chaves seguras BASH
+# SECRET
+_
+KEY
+_
+BASE (Rails + JWT)
+openssl rand -hex 64
+# ENCRYPTION
+_
+KEY (Fernet — para evo-core e evo-processor)
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate
+_
+ke
+# EVOAI
+_
+CRM
+_
+API
+_
+TOKEN (comunicação processor → CRM)
+python3 -c "import uuid; print(uuid.uuid4())"
+Erro comum: usar chaves diferentes para SECRET
+_
+KEY
+_
+BASE e JWT
+_
+SECRET
+_
+KEY . Elas
+precisam ser idênticas em todos os serviços — auth, CRM e core usam a mesma chave
+para assinar e validar tokens JWT.
+PRÓXIMO Módulo 3 — Setup base da operação →
+// EXECUÇÃO — DO SETUP AO PRIMEIRO RESULTADO
+MÓDULO 3
+Setup base da operação
+Ambiente funcional rodando localmente em poucos passos.
+Clonar o repositório com submodules
+Clone inicial BASH
+# Clone com todos os submodules
+git clone --recurse-submodules git@github.com:EvolutionAPI/evo-crm-community
+cd evo-crm-community
+# Se já clonou sem submodules:
+git submodule update --init --recursive
+Configurar variáveis de ambiente
+Criar e editar o .env BASH
+# Copiar o template
+cp .env.example .env
+# Editar com seus valores
+# OBRIGATÓRIO alterar:
+# POSTGRES
+_
+PASSWORD
+# SECRET
+_
+KEY
+_
+BASE (= JWT
+_
+SECRET
+_
+KEY)
+# ENCRYPTION
+_
+KEY
+# EVOAI
+_
+CRM
+_
+API
+_
+TOKEN
+Variáveis críticas que precisam ser consistentes
+VARIÁVEL USADA POR REGRA
+SECRET
+_
+KEY
+_
+BASE auth, crm, core Mesmo valor em todos os serviços
+JWT
+_
+SECRET
+_
+KEY auth, core Deve ser = SECRET_KEY_BASE
+ENCRYPTION
+_
+KEY core, processor Mesmo valor — Fernet key
+EVOAI
+_
+CRM
+_
+API
+_
+TOKEN crm, processor Mesmo UUID — token de serviço
+POSTGRES
+_
+PASSWORD todos Mesmo valor — acesso ao banco
+Sequência de setup
+Setup completo (recomendado) BASH
+# Roda tudo em sequência: copia .env, build, sobe infra,
+# aguarda PostgreSQL healthy, seed-auth, seed-crm, sobe todos os serviços
+make setup
+make setup é o único comando necessário no primeiro uso. Ele executa cada passo na
+ordem correta, aguarda o banco ficar pronto e imprime as URLs e credenciais ao final.
+Passo a passo (se quiser controle manual) BASH
+# 1. Subir só a infraestrutura (PostgreSQL + Redis + MailHog)
+docker compose up -d postgres redis mailhog
+# 2. Aguardar PostgreSQL ficar healthy
+docker compose ps
+# 3. Seed do auth (cria banco, tabelas e usuário admin)
+make seed-auth
+# 4. Seed do CRM (cria banco, tabelas e configurações)
+make seed-crm
+# 5. Subir todos os serviços
+make start
+# 6. Validar — acessar no navegador
+open http://localhost:5173
+A ordem importa: seed-auth sempre antes de seed-crm. O CRM depende do usuário criado
+pelo seed do auth.
+Credenciais padrão após seed
+Login inicial TEXT
+Email: support@evo-auth-service-community.com
+Senha: Password@123
+Importante: troque a senha padrão imediatamente em qualquer ambiente que não seja
+desenvolvimento local. Use o painel de usuários para alterar.
+Validação do setup
+Deploy alternativo: EVO Setup e Setup Orion
+Além do setup manual via Docker Compose, existem duas ferramentas que
+automatizam o deploy em servidor:
+EVO SETUP
+Deploy click & play
+automatizado
+Configura todo o
+ambiente com um
+comando
+Ideal para quem quer
+ir direto para
+produção
+Gera configurações,
+sobe containers e
+executa seeds
+SETUP ORION (OPEN SOURCE)
+Ferramenta open source de deploy
+Documentação completa disponível
+Suporte a múltiplas configurações de ambiente
+Referência:
+docs.evolutionfoundation.com.br/evolution-
+api/install/setup-orion
+Recomendação: se você quer entender como o ecossistema funciona, faça o setup manual
+primeiro. Se quer ir direto para produção com rapidez, use o EVO Setup ou o Setup Orion.
+Troubleshooting do setup
+SEED FALHOU
+Verificar se PostgreSQL está
+healthy: docker compose ps
+postgres
+Seed do CRM depende do seed do
+auth — respeitar a ordem
+Verificar logs: docker compose
+logs evo-auth
+CONTAINER REINICIANDO
+Verificar logs: docker compose
+logs [servico]
+Causa comum: variável de
+ambiente incorreta ou faltando
+Verificar dependências: auth precisa
+de postgres, CRM precisa de auth
+Setup travou em algo específico do seu ambiente? O Pro Support resolve problemas de
+configuração em tempo real — sem você perder dias em tentativa e erro.
+PRÓXIMO Módulo 4 — Primeiro fluxo funcional →
+MÓDULO 4
+Primeiro fluxo funcional
+Do setup até "isso funciona" — um fluxo ponta a ponta validado.
+O melhor fluxo demonstrativo combina canal de mensagem + agente de IA + handoff
+para humano. Vamos montar um atendimento com IA via Telegram que transfere para
+um agente humano quando necessário.
+Por que Telegram como primeiro fluxo
+Criar um bot no Telegram é gratuito e instantâneo (BotFather)
+Não exige aprovação de conta business ou credenciais pagas
+Resultado visível direto no celular ou desktop
+Testa toda a cadeia real: canal externo → webhook → CRM → agente IA → resposta
+Serve de base para entender como qualquer outro canal funciona
+Passo a passo
+Dica: para que o webhook do Telegram funcione, o CRM precisa estar acessível pela
+internet (o Telegram envia webhooks para /webhooks/telegram/:bot
+_
+token ). Em
+desenvolvimento local, use uma ferramenta como ngrok para expor a porta 3000.
+Exemplo de instrução do agente TEXT
+Você é um assistente de atendimento da empresa [nome].
+Responda de forma clara, objetiva e profissional.
+Se o cliente pedir para falar com um humano, ou se a dúvida
+fugir do seu escopo, use a ferramenta transfer
+_
+to
+_
+human
+para transferir a conversa.
+Escopo: dúvidas sobre produtos, horários e preços.
+Fora do escopo: reclamações, devoluções, financeiro.
+O que acontece por trás
+Quando o usuário envia uma mensagem pelo Telegram:
+1. O Telegram envia o webhook para /webhooks/telegram/:bot
+_
+token no CRM
+2. O CRM recebe a mensagem e cria/atualiza a conversa
+3. O evento message.created dispara o AgentBotListener
+4. O DebounceService acumula mensagens por debounce
+_
+time segundos no Redis
+5. Após o debounce, o CRM envia o lote para o Processor via POST /api/v1/chat
+6. O Processor carrega o agente (com modelo, ferramentas e instruções)
+7. O Google ADK executa o agente com as ferramentas disponíveis
+8. A resposta volta para o CRM, que cria a mensagem de saída
+9. O ActionCable envia em tempo real para o frontend via WebSocket
+Ferramentas built-in disponíveis
+FERRAMENTA O QUE FAZ
+transfer
+_
+to
+_
+human
+Transfere a conversa para um agente humano, muda status para
+"open"
+send
+_private
+_
+message Envia nota interna visível só para agentes
+update
+_
+contact Atualiza dados do contato (nome, email, telefone, custom attributes)
+pipeline
+_
+manipulation Operações de CRM (mover card no pipeline, criar item)
+Erros comuns neste fluxo
+BOT NÃO RESPONDE
+Verificar se o Agent Bot está
+conectado ao inbox Telegram
+Verificar se a API key do LLM está
+correta
+Checar logs do processor: docker
+compose logs evo-processor
+Confirmar EVOAI
+_
+CRM
+_
+API
+_
+TOKEN
+consistente entre CRM e processor
+WEBHOOK NÃO CHEGA
+CRM precisa estar acessível pela
+internet (Telegram envia webhooks)
+Em dev local: usar ngrok ou similar
+para expor a porta 3000
+Verificar se o token do BotFather foi
+colado corretamente
+Checar logs: docker compose
+logs evo-crm
+RESPOSTAS DUPLICADAS
+Aumentar debounce
+_
+time no
+Agent Bot
+Verificar se não tem dois bots no
+mesmo inbox
+Checar se webhook externo não
+está duplicando mensagens
+Validação: se você enviou uma mensagem pelo Telegram, a IA respondeu diretamente no
+chat, e você consegue ver a conversa no dashboard — o fluxo está funcional. Agora você
+sabe que o ecossistema inteiro está operando.
+PRÓXIMO Módulo 5 — Arquitetura recomendada →
+// PRODUÇÃO — ARQUITETURA, INTEGRAÇÕES E OPERAÇÃO
+MÓDULO 5
+Arquitetura recomendada para projetos reais
+Quando simplificar, quando robustecer e como decidir.
+RESUMO RÁPIDO
+Escolher entre 3 níveis de arquitetura: MVP, operação pequena ou escala
+Configurar variáveis de produção e reverse proxy com SSL
+Identificar pontos críticos de escala (processor é o primeiro gargalo)
+Três níveis de arquitetura
+MVP / VALIDAÇÃO
+1 servidor (VPS
+4vCPU / 8GB)
+Tudo via Docker
+Compose
+Backup manual ou
+cron
+Até ~50 conversas
+simultâneas
+1 canal, 1 agente IA
+OPERAÇÃO PEQUENA
+1 servidor mais
+robusto (8vCPU /
+16GB)
+PostgreSQL
+dedicado (ou
+managed)
+Redis com
+persistência AOF
+Backup automático
+diário
+Até ~200 conversas
+simultâneas
+OPERAÇÃO EM
+CRESCIMENTO
+2+ servidores com
+load balancer
+Banco managed
+(RDS, Cloud SQL)
+Redis managed
+(ElastiCache)
+Observabilidade
+completa
+500+ conversas
+simultâneas
+Mapa de decisão
+Quando usar arquitetura simples (tudo em 1 servidor)?
+Se você está validando o modelo, tem menos de 50 clientes ativos simultâneos, e pode tolerar
+até 30 minutos de downtime em caso de problema.
+Quando separar o banco de dados?
+Quando o volume de conversas cresce além de 100 simultâneas, ou quando a perda de dados
+não é tolerável. Banco managed (RDS, Cloud SQL, Supabase) elimina manutenção de backup e
+replicação.
+Quando adicionar múltiplas instâncias?
+Quando o processor (IA) se torna gargalo. O evo-processor é o serviço que mais consome
+recursos por executar LLMs. Escale horizontalmente o processor primeiro, antes de escalar
+outros serviços.
+Configuração de produção
+Variáveis críticas para produção ENV
+# SEGURANÇA — obrigatório alterar em produção
+RAILS
+_
+ENV=production
+POSTGRES
+_
+PASSWORD=senha-forte-unica-de-producao
+SECRET
+_
+KEY
+_
+BASE=chave-de-64-caracteres-gerada-com-openssl
+ENCRYPTION
+_
+KEY=chave-fernet-de-producao
+# CORS — restringir ao seu domínio
+CORS
+_
+ORIGINS=https://app.seudominio.com
+FRONTEND
+_
+URL=https://app.seudominio.com
+# URLs internas — manter referência entre containers
+EVO
+_
+AUTH
+_
+SERVICE
+_
+URL=http://evo-auth:3001
+EVO
+_
+AI
+_
+CORE
+_
+SERVICE
+_
+URL=http://evo-core:5555
+AI
+_
+PROCESSOR
+_
+URL=http://evo-processor:8000
+# LOGS
+RAILS
+_
+LOG
+_
+TO
+_
+STDOUT=true
+LOG
+_
+LEVEL=info
+# DESABILITAR em produção
+ENABLE
+_
+ACCOUNT
+_
+SIGNUP=false
+DEBUG=false
+Reverse proxy (Nginx)
+Em produção, você precisa de um reverse proxy na frente para SSL, roteamento e
+segurança. Mapeamento típico de subdomínios:
+SUBDOMÍNIO DESTINO USO
+app.seudominio.com evo-frontend :80 Interface principal
+api.seudominio.com evo-crm :3000 API do CRM + webhooks
+auth.seudominio.com evo-auth :3001 Autenticação
+ai.seudominio.com evo-core :5555 API de agentes IA
+chat.seudominio.com evo-processor :8000 Chat com agentes + SSE/WebSocket
+Erro comum: esquecer de configurar WebSocket no reverse proxy. O CRM usa ActionCable
+(WebSocket) para tempo real, e o Processor usa SSE para streaming e WebSocket para
+live chat. Configure proxy_
+set
+_
+header Upgrade e Connection "upgrade" no Nginx.
+Pontos críticos de escala
+COMPONENTE GARGALO SOLUÇÃO
+evo-processor
+CPU/memória por execução
+de LLM
+Escalar horizontalmente (múltiplas
+instâncias)
+PostgreSQL
+Volume de mensagens em alta
+concorrência
+Read replicas, tuning de conexões
+( DB
+_
+MAX
+_
+OPEN
+_
+CONNS )
+Redis Cache de sessões de agente +
+Sidekiq Separar Redis por função (cache vs filas)
+Sidekiq (auth +
+crm) Fila de jobs assíncronos
+Aumentar SIDEKIQ_
+CONCURRENCY , dedicar
+workers
+Arquitetura é onde erros custam mais caro e demoram mais para aparecer. No Pro Support,
+revisamos sua arquitetura antes de ir para produção — cada projeto tem contexto diferente.
+PRÓXIMO Módulo 6 — Integrações essenciais →
+MÓDULO 6
+Integrações essenciais
+Como conectar a Evolution ao resto da operação sem criar gambiarra.
+RESUMO RÁPIDO
+9 canais nativos (WhatsApp, Instagram, Messenger, Telegram, Email, SMS, Web
+Widget, API)
+6 provedores WhatsApp (3 oficiais, 3 não-oficiais)
+Webhooks de saída, OAuth, MCP, ferramentas HTTP e A2A
+5 exemplos práticos com chamadas de API reais (lead, N8N, carrinho, pipeline,
+webhook)
+Canais de mensagem suportados
+O CRM suporta 9 tipos de canal nativamente, cada um com seu modelo dedicado no
+codebase:
+CANAL MODELO OBSERVAÇÃO
+WhatsApp Channel::Whatsapp 6 provedores suportados (ver tabela abaixo)
+Instagram Direct Channel::Instagram Canal dedicado para Instagram Direct
+Messages
+Facebook
+Messenger Channel::FacebookPage Messenger via Facebook Page; também suporta
+Instagram via campo instagram
+_
+id
+Telegram Channel::Telegram Webhook por bot token (BotFather)
+Email Channel::Email IMAP/SMTP bidirecional; provedores: google ,
+microsoft
+SMS (Bandwidth) Channel::Sms SMS via Bandwidth API
+SMS/WhatsApp
+(Twilio)
+Channel::TwilioSms Dual mode: sms ou whatsapp via Twilio
+Web Widget Channel::WebWidget Snippet JS para incorporar no site — live chat
+nativo
+API Channel::Api Canal genérico via webhook/REST para
+integrações customizadas
+Provedores de WhatsApp
+O canal WhatsApp suporta 6 provedores distintos, definidos em
+Channel::Whatsapp::PROVIDERS :
+PROVEDOR TIPO OBSERVAÇÃO
+whatsapp_
+cloud Oficial (Meta) WhatsApp Cloud API — recomendado para produção
+default
+Oficial
+(360dialog) 360dialog como BSP oficial da Meta
+notificame BSP NotificaMe Hub — lifecycle próprio de webhook
+(subscribe/unsubscribe)
+evolution Não-oficial Via evolution-api (Baileys) — conexão por QR Code
+evolution
+_go Não-oficial Via evolution-go (whatsmeow) — conexão por QR Code
+zapi Não-oficial Z-API — lifecycle próprio de webhook
+(subscribe/unsubscribe)
+Atenção: os provedores evolution , evolution
+_go e zapi utilizam bibliotecas não-
+oficiais (Baileys e whatsmeow) que fazem engenharia reversa do protocolo WhatsApp. Isso
+viola os Termos de Serviço da Meta e pode resultar em banimento permanente do número.
+Para uso comercial, utilize provedores oficiais (whatsapp_
+cloud , default ) ou BSPs
+autorizados.
+Webhooks de saída (CRM → seu sistema)
+O CRM pode enviar webhooks para sistemas externos em eventos específicos. Isso é o
+principal ponto de integração com ERPs, CRMs externos, sistemas de BI, etc.
+Eventos disponíveis
+CONVERSAS
+conversation.created
+conversation.updated
+conversation.resolved
+conversation.opened
+conversation.status
+_
+changed
+conversation.bot
+_
+handoff
+MENSAGENS E CONTATOS
+message.created
+message.updated
+contact.created
+contact.updated
+contact.merged
+first.reply.created
+Integrações OAuth (via Processor)
+O Processor suporta integrações OAuth2 que podem ser usadas como ferramentas
+pelos agentes de IA:
+Google Calendar — criar, listar e gerenciar eventos
+Google Sheets — ler e escrever dados em planilhas
+GitHub — gerenciar issues, PRs, repos
+Notion — buscar e criar páginas
+HubSpot — CRM externo, deals, contatos
+Linear — gerenciamento de projetos
+Monday — boards e items
+Atlassian (Jira/Confluence) — issues e documentação
+Asana — tarefas e projetos
+PayPal — operações de pagamento
+Canva — geração de conteúdo visual
+Supabase — operações de banco de dados
+MCP (Model Context Protocol)
+MCP permite que agentes IA acessem ferramentas externas de forma padronizada. O
+ecossistema suporta:
+Servidores MCP do registro — cadastrados no evo-core e acessíveis a todos os
+agentes
+Servidores MCP customizados — seus próprios servidores MCP
+Cache de ferramentas MCP — via Redis para performance
+( TOOLS
+_
+CACHE
+_
+ENABLED=true )
+Ferramentas HTTP customizadas
+Você pode criar ferramentas customizadas que chamam qualquer API HTTP. Cada
+ferramenta é registrada no evo-core e fica disponível para os agentes IA usarem:
+Exemplo de custom tool JSON
+{
+"name": "consultar
+_
+cep"
+,
+"description": "Consulta endereço por CEP usando ViaCEP"
+,
+"method": "GET"
+,
+"url": "https://viacep.com.br/ws/{cep}/json/"
+,
+"path
+_params": ["cep"],
+"headers": {},
+"query_params": []
+}
+A2A (Agent-to-Agent Protocol)
+O Processor implementa o protocolo A2A do Google, permitindo que agentes se
+comuniquem entre si — inclusive com agentes externos. Cada agente expõe um
+endpoint A2A em /api/v1/a2a/:agent
+_
+id e um agent card em /.well-
+known/agent.json.
+Exemplos práticos de uso da API
+A API do CRM permite integrações com qualquer sistema externo. Abaixo, cenários
+reais com exemplos de chamadas.
+Autenticação: todas as chamadas usam o header api
+_
+access
+_
+token com um token
+gerado no painel (Settings → Access Tokens).
+Caso 1 — Captura de lead de formulário do site
+Quando alguém preenche um formulário no seu site, você cria o contato e adiciona ao
+pipeline de vendas com uma única chamada.
+API pública de leads (sem auth de agente) HTTP
+POST /public/api/v1/leads
+Content-Type: application/json
+X-API-Key: <seu
+_
+access
+_
+token>
+{
+"contact": {
+"name": "Maria Silva"
+,
+"email": "maria@empresa.com"
+,
+"phone
+_
+number": "+5511999887766"
+,
+"company": "Empresa XYZ"
+},
+"deal": {
+"title": "Lead do site - Plano Pro"
+,
+"value": 297.00,
+"pipeline
+_
+id": "<uuid
+_
+do
+_pipeline>"
+,
+"stage
+_
+id": "<uuid
+_
+do
+_primeiro
+_
+estagio>"
+},
+"custom
+_
+fields": {
+"origem": "formulario
+_
+site"
+,
+"pagina": "/precos"
+}
+}
+Resposta (201 Created) JSON
+{
+"success": true,
+"lead
+_
+id": "<contact
+_
+uuid>"
+,
+"deal
+_
+id": "<pipeline
+_
+item
+_
+uuid>"
+,
+"message": "Lead created successfully"
+}
+Essa rota é pública (não precisa de auth de usuário) — ideal para formulários de site,
+landing pages e integrações com ferramentas como Typeform, Elementor, etc.
+Caso 2 — Bot de atendimento com N8N
+O CRM tem suporte nativo a bots N8N. Quando uma mensagem chega no inbox, o
+CRM envia um POST para o workflow do N8N com este payload:
+Payload enviado pelo CRM ao N8N JSON
+{
+"chatInput": "Oi, quero saber sobre o plano Pro"
+,
+"sessionId": "<conversation
+_
+uuid>"
+,
+"fromMe": false,
+"instanceName": "WhatsApp Principal"
+,
+"serverUrl": "https://api.seudominio.com"
+,
+"apiKey": "<agent
+_
+bot
+_
+access
+_
+token>"
+,
+"evoai
+_
+crm
+_
+event": "message
+_
+created"
+,
+"evoai
+_
+crm
+_
+data": {
+"id": "<message
+_
+uuid>"
+,
+"content": "Oi, quero saber sobre o plano Pro"
+,
+"message
+_
+type": "incoming"
+,
+"conversation": {
+"id": "<conversation
+_
+uuid>"
+,
+"status": "pending"
+,
+"contact": {
+"name": "João"
+,
+"phone
+_
+number": "+5511999887766"
+}
+}
+},
+"agent
+_
+bot
+_
+id": "<bot
+_
+uuid>"
+}
+Como configurar:
+Crie um Agent Bot com provider n8n
+No campo outgoing_
+url , coloque a URL do webhook do seu workflow N8N
+No campo api
+_
+key , use formato usuario:senha para Basic Auth (se seu N8N
+exigir)
+Conecte o bot ao inbox desejado
+Resposta do N8N: o workflow processa a mensagem e responde via API do CRM:
+N8N responde na conversa HTTP
+POST /api/v1/conversations/<conversation
+_
+uuid>/messages
+api
+_
+access
+_
+token: <agent
+_
+bot
+_
+access
+_
+token>
+Content-Type: application/json
+{
+"content": "Olá João! O Plano Pro custa R$297/mês. Quer saber mais detalhe
+"message
+_
+type": "outgoing"
+,
+"private": false
+}
+Caso 3 — Recuperação de carrinho abandonado
+Quando sua plataforma de e-commerce detecta um carrinho abandonado, ela pode
+criar uma conversa no CRM e disparar uma mensagem automática.
+Passo 1: Criar ou encontrar o contato
+Criar contato HTTP
+POST /api/v1/contacts
+api
+_
+access
+_
+token: <seu
+_
+token>
+Content-Type: application/json
+{
+"name": "Carlos Oliveira"
+,
+"phone
+_
+number": "+5511988776655"
+,
+"email": "carlos@email.com"
+,
+"custom
+_
+attributes": {
+"plataforma": "shopify"
+,
+"ultimo
+_
+carrinho": "R$ 459,90"
+,
+"produtos": "Tênis Nike Air Max, Camiseta Dry-Fit"
+}
+}
+Passo 2: Criar conversa no inbox do WhatsApp com mensagem de recuperação
+Criar conversa com mensagem HTTP
+POST /api/v1/conversations
+api
+_
+access
+_
+token: <seu
+_
+token>
+Content-Type: application/json
+{
+"inbox
+_
+id": "<uuid
+_
+inbox
+_
+whatsapp>"
+,
+"contact
+_
+id": "<uuid
+_
+do
+_
+contato>"
+,
+"status": "pending"
+,
+"message": {
+"content": "Oi Carlos! Vi que você deixou alguns itens no carrinho. Poss
+"message
+_
+type": "outgoing"
+}
+}
+Para WhatsApp oficial (Cloud API), mensagens iniciadas pelo negócio fora da janela de 24h
+precisam usar templates pré-aprovados. A mensagem acima funciona dentro da janela ou
+em canais sem essa restrição (Telegram, web widget, API).
+Caso 4 — Mover lead no pipeline via API
+Quando um evento externo acontece (pagamento confirmado, contrato assinado, etc.),
+você pode mover o item automaticamente para o próximo estágio do pipeline.
+Adicionar contato ao pipeline HTTP
+POST /api/v1/pipelines/<pipeline
+_
+uuid>/pipeline
+_
+items
+api
+_
+access
+_
+token: <seu
+_
+token>
+Content-Type: application/json
+{
+"type": "contact"
+,
+"item
+_
+id": "<contact
+_
+uuid>"
+,
+"pipeline
+_
+stage
+_
+id": "<uuid
+_
+estagio
+_
+lead>"
+,
+"custom
+_
+fields": {
+"valor
+_
+deal": "R$ 2.500"
+,
+"origem": "inbound"
+,
+"prioridade": "alta"
+}
+}
+Mover para próximo estágio (ex: pagamento confirmado) HTTP
+PATCH /api/v1/pipelines/<pipeline
+_
+uuid>/pipeline
+_
+items/<item
+_
+uuid>/move
+_
+to
+_
+st
+api
+_
+access
+_
+token: <seu
+_
+token>
+Content-Type: application/json
+{
+"new
+_
+stage
+_
+id": "<uuid
+_
+estagio
+_
+fechado>"
+,
+"notes": "Pagamento confirmado via Stripe webhook"
+}
+Caso 5 — Receber eventos do CRM via webhook
+Configure webhooks de saída para que seu sistema externo (ERP, BI, CRM externo)
+receba eventos em tempo real.
+Criar webhook de saída HTTP
+POST /api/v1/webhooks
+api
+_
+access
+_
+token: <seu
+_
+token>
+Content-Type: application/json
+{
+"webhook": {
+"url": "https://seu-sistema.com/webhooks/evo-crm"
+,
+"name": "ERP Sync"
+,
+"subscriptions": [
+"message
+_
+created"
+,
+"conversation
+_
+created"
+,
+"conversation
+_
+status
+_
+changed"
+,
+"contact
+_
+created"
+,
+"contact
+_
+updated"
+,
+"pipeline
+_
+item.created"
+,
+"pipeline
+_
+item.updated"
+]
+}
+}
+Exemplo de payload recebido (evento message
+_
+created ):
+Payload do webhook JSON
+{
+"event": "message
+_
+created"
+,
+"id": "<message
+_
+uuid>"
+,
+"content": "Quero cancelar meu plano"
+,
+"message
+_
+type": "incoming"
+,
+"private": false,
+"conversation": {
+"id": "<conversation
+_
+uuid>"
+,
+"status": "open"
+,
+"inbox
+_
+id": "<inbox
+_
+uuid>"
+,
+"contact": {
+"id": "<contact
+_
+uuid>"
+,
+"name": "Ana Costa"
+,
+"phone
+_
+number": "+5511977665544"
+}
+},
+"inbox": {
+"id": "<inbox
+_
+uuid>"
+,
+"name": "WhatsApp Principal"
+}
+}
+Eventos disponíveis para webhook
+CONVERSAS E MENSAGENS
+conversation
+_
+created
+conversation
+_
+status
+_
+changed
+conversation
+_
+updated
+message
+_
+created
+message
+_
+updated
+CONTATOS
+contact
+_
+created
+contact
+_
+updated
+PIPELINE
+pipeline
+_
+item.created
+pipeline
+_
+item.updated
+pipeline
+_
+item.completed
+pipeline
+_
+item.cancelled
+TASKS E OUTROS
+pipeline
+_
+task.created
+pipeline
+_
+task.completed
+pipeline
+_
+task.overdue
+webwidget
+_
+triggered
+Boas práticas de integração
+Erro caro: construir integrações sem tratamento de falha. Webhooks falham, APIs ficam
+fora, timeouts acontecem. Sempre tenha um plano para "e se essa chamada não
+funcionar?".
+Integrações são onde a maior parte dos problemas aparece em produção. O Pro Support inclui
+revisão de fluxos de integração e suporte para debug de webhooks, payloads e autenticação
+entre serviços.
+PRÓXIMO Módulo 7 — Operação, monitoramento e segurança →
+MÓDULO 7
+Operação, monitoramento e segurança
+Manter a operação viva e menos frágil.
+RESUMO RÁPIDO
+Entender as 8 camadas de segurança do ecossistema (JWT, Fernet, RBAC,
+MFA, etc.)
+Executar checklist de segurança mínima para produção
+Configurar monitoramento, Langfuse (LLM) e backup automático
+Autenticação e segurança
+O ecossistema tem camadas de segurança que você precisa entender e manter:
+MECANISMO ONDE O QUE FAZ
+JWT (HS256) Todos os serviços Autenticação de usuários — assinado com
+SECRET_KEY_BASE
+Fernet encryption Core + Processor Criptografia de API keys armazenadas —
+ENCRYPTION_KEY
+X-Service-Token CRM ←→ Processor Autenticação serviço-a-serviço
+X-API-Key Processor Autenticação de Agent Bots para rotas /sync/
+OAuth2
+(Doorkeeper)
+Auth Fluxo OAuth completo para aplicações externas
+MFA (TOTP + Email
+OTP)
+Auth Autenticação em dois fatores para usuários
+RBAC Auth Roles (account_owner, agent) com permissões
+granulares
+Rate Limiting CRM (rack-attack) +
+Processor Proteção contra abuso de API
+Checklist de segurança mínima
+Monitoramento e logs
+Onde olhar quando algo parece errado:
+Comandos de diagnóstico BASH
+# Status de todos os serviços
+docker compose ps
+# Logs de um serviço específico (follow)
+docker compose logs -f evo-processor
+# Logs combinados de todos
+docker compose logs --tail=100
+# Health check manual
+curl http://localhost:3000/health # CRM
+curl http://localhost:5555/health # Core
+curl http://localhost:8000/health # Processor
+# Ver filas Sidekiq (se acumulando, há problema)
+docker compose exec evo-crm rails runner "puts Sidekiq::Queue.all.map { |q|
+Observabilidade de LLM (Langfuse)
+O Processor suporta Langfuse via OpenTelemetry para monitorar custos e performance
+de chamadas de IA:
+.env — configuração Langfuse ENV
+LANGFUSE
+_
+PUBLIC
+_
+KEY=pk-lf-
+...
+LANGFUSE
+_
+SECRET
+_
+KEY=sk-lf-
+...
+Sinais de alerta
+PROBLEMA IMINENTE
+Filas Sidekiq crescendo sem
+processar
+Container reiniciando (OOMKilled)
+Tempo de resposta do banco acima
+de 500ms
+Erros 500 recorrentes nos logs do
+CRM
+AÇÃO IMEDIATA
+Verificar docker stats para
+consumo de recursos
+Checar espaço em disco: df -h
+Verificar conexões do banco:
+SELECT count(*) FROM
+pg_
+stat
+_
+activity;
+Reiniciar serviço afetado: docker
+compose restart [servico]
+Backup e recuperação
+Backup do PostgreSQL BASH
+# Backup completo
+docker compose exec postgres pg_
+dump -U postgres evo
+_
+community > backup_$(dat
+# Restaurar
+docker compose exec -T postgres psql -U postgres evo
+_
+community < backup_
+2026
+Checklist de operação semanal
+Manter operação estável exige vigilância contínua. O Pro Support oferece monitoramento
+assistido, diagnóstico de incidentes e orientação para escalar sem quebrar o que já funciona.
+PRÓXIMO Módulo 8 — Modelos de entrega e monetização →
+// NEGÓCIO — MODELOS DE ENTREGA E MONETIZAÇÃO
+MÓDULO 8
+Modelos de entrega e monetização
+Transformar implementação em oferta real sem virar refém de projeto mal vendido.
+Formas de usar a Evolution como serviço
+Implementação dedicada — instalar e configurar para um cliente específico
+Operação gerenciada — manter a infra e cobrar mensalidade
+White-label — revender como sua própria plataforma
+Consultoria de IA — configurar agentes e fluxos inteligentes
+Uso interno — atendimento próprio com IA e CRM
+Exemplos de pacotes de serviço
+SETUP (COBRANÇA ÚNICA)
+Instalação e
+configuração do
+ambiente
+Conexão de 1 canal
+Configuração de 1
+agente IA
+Treinamento básico
+da equipe
+Documentação de
+acesso
+MENSALIDADE
+Hospedagem e
+manutenção do
+servidor
+Monitoramento e
+backup
+Atualizações de
+segurança
+Suporte técnico
+básico
+SLA de uptime
+definido
+OTIMIZAÇÃO
+Novos agentes e
+fluxos
+Integrações com
+sistemas do cliente
+Automations/regras
+customizadas
+Relatórios e
+dashboards
+Treinamento
+avançado
+Erros comuns de precificação
+ERRO
+Cobrar só pelo setup e dar suporte
+"de graça"
+Não incluir custo de LLM na
+mensalidade
+Prometer "IA que resolve tudo" sem
+definir escopo
+Não cobrar por integrações
+customizadas
+Vender mensalidade sem SLA claro
+COMO EVITAR
+Setup é projeto — mensalidade é
+operação — cobrar separado
+Incluir buffer de 30% sobre custo
+real de LLM
+Definir exatamente o que a IA
+responde e o que não responde
+Precificar hora de integração
+separadamente
+SLA é compromisso — precifique
+pelo risco
+Regra prática: complexidade técnica e margem de lucro são inversamente proporcionais
+quando mal precificados. Quanto mais customização prometer, mais precisa cobrar. Se não
+cobrar, vai fazer de graça.
+O que vender como diferencial
+Atendimento com IA que realmente funciona — não chatbot de fluxo fixo, mas agente
+inteligente
+Handoff IA/humano transparente — o cliente não percebe a transição
+Multicanal unificado — WhatsApp + Telegram + web + email no mesmo painel
+Pipeline de vendas integrado — CRM real com kanban, não planilha
+Dados na mão do cliente — self-hosted, sem dependência de SaaS externo
+Como monetizar o EvoNexus junto com o CRM
+O EvoNexus não é só para uso interno — é uma camada de valor que justifica ticket
+mais alto em qualquer pacote de implementação.
+OPERÂO INTELIGENTE
+(UPSELL)
+Instalar e configurar
+o EvoNexus junto
+com o CRM
+Configurar 5–10
+agentes relevantes
+para o negócio do
+cliente
+Criar skills
+customizadas para
+os processos dele
+Integrações com
+ferramentas que o
+cliente já usa
+Cobrança única — adicional ao
+setup do CRM
+RELATÓRIOS AUTOMÁTICOS
+(RECORRENTE)
+Configurar rotinas
+que geram relatórios
+semanais/mensais
+Financial pulse,
+community report,
+social analytics
+Entregar como
+serviço gerenciado
+— relatório chega no
+email do cliente
+Custo baixo, valor
+percebido alto
+Mensalidade — fácil de renovar,
+difícil de cancelar
+CONSULTORIA DE
+AUTOMAÇÃO
+Mapear processos
+manuais repetitivos
+do cliente
+Criar skills e rotinas
+para automatizar
+cada um
+Conectar EvoNexus
+ao CRM via int-
+evo-crm
+Treinar a equipe
+para usar os
+agentes no dia a dia
+Projeto + mensalidade de
+manutenção
+Argumento de venda: “O CRM cuida do seu atendimento. O EvoNexus cuida da sua
+operação — financeiro, comunidade, social media, projetos. 38 agentes trabalhando
+enquanto você dorme, por menos do que um assistente part-time.”
+PRÓXIMO Módulo 9 — Templates, checklists e materiais →
+// REFERÊNCIA — TEMPLATES, CHECKLISTS E GLOSSÁRIO
+MÓDULO 9
+Templates, checklists e materiais de apoio
+Ativos prontos para copiar, colar e reutilizar em cada projeto.
+Checklist de kick-off de projeto
+Checklist de setup de produção
+Checklist de validação pós-deploy
+Checklist de entrega para cliente
+Template: descoberta de projeto
+ROTEIRO DE DISCOVERY
+Qual o objetivo principal? (atendimento, vendas, suporte, automação)
+Quantos atendentes humanos terão? (define a escala)
+Qual canal prioritário? (WhatsApp, web, Telegram, multi)
+Que tipo de pergunta a IA deve responder? (definir escopo exato)
+Quando a IA deve transferir para humano? (critérios claros)
+Integra com algum sistema externo? (ERP, CRM, banco, pagamento)
+Quem vai operar no dia a dia? (perfil da equipe)
+Qual o volume esperado? (conversas/dia, mensagens/dia)
+Existência de dados sensíveis? (LGPD, dados financeiros, saúde)
+PRÓXIMO Módulo 10 — Glossário e referências →
+MÓDULO 10
+Glossário, referências e navegação
+Consulta rápida de termos, siglas e onde encontrar mais informação.
+Glossário de termos
+TERMO DEFINIÇÃO
+Inbox Canal de entrada configurado no CRM (ex: WhatsApp, web widget, Telegram)
+Agent Bot Bot conectado a um inbox que processa mensagens automaticamente (IA,
+webhook ou N8N)
+Conversation Uma conversa entre contato e agente/bot — tem status (open, pending, resolved,
+snoozed)
+Debounce Tempo de espera antes de enviar mensagens acumuladas para a IA processar
+Handoff Transferência de atendimento da IA para agente humano
+MCP Model Context Protocol — padrão para agentes IA acessarem ferramentas
+externas
+A2A Agent-to-Agent Protocol — protocolo Google para comunicação entre agentes IA
+Pipeline Funil de vendas no CRM com estágios (kanban)
+Sidekiq Processador de jobs assíncronos usado pelos serviços Ruby (auth + CRM)
+ActionCable WebSocket do Rails usado para notificações e atualizações em tempo real
+Fernet Esquema de criptografia simétrica usado para armazenar API keys com segurança
+LiteLlm Biblioteca que unifica a API de vários provedores de LLM (OpenAI, Anthropic,
+etc.)
+Google ADK Agent Development Kit do Google — framework usado pelo processor para
+executar agentes
+Custom Tool Ferramenta HTTP customizada que um agente IA pode chamar
+pgvector Extensão PostgreSQL para armazenar e buscar embeddings vetoriais
+SSE Server-Sent Events — usado para streaming de respostas de IA
+Trilhas recomendadas por perfil
+INICIANTE TÉCNICO
+Módulo 0 → 1 → 2 → 3 → 4
+Foco: entender e rodar
+Depois: Módulo 5 (arquitetura
+básica)
+IMPLEMENTADOR / AGÊNCIA
+Módulo 0 → 1 → 3 → 4 → 5 → 8
+Foco: entregar para cliente
+Depois: Módulos 6, 7 e 9
+OPERAÇÃO INTERNA
+Módulo 0 → 1 → 3 → 4 → 6 → 7
+Foco: integrar com sistemas
+existentes
+Depois: Módulo 5 para escalar
+SUPORTE / ESCALA
+Módulo 1 → 5 → 7 → 10
+Foco: manter e diagnosticar
+Referência constante: Módulo 9
+Portas padrão de referência
+PORTA SERVIÇO HEALTH CHECK
+3000 evo-crm /health
+3001 evo-auth /health
+5173 evo-frontend Página de login
+5555 evo-core /health , /ready
+8000 evo-processor /health , /ready
+8080 evo-bot-runtime /health
+5432 PostgreSQL pg_
+isready
+6379 Redis redis-cli ping
+8025 MailHog UI (dev) Página web
+PRÓXIMO EvoNexus — O time de IA que opera o negócio →
+// EVONEXUS — INTELIGÊNCIA OPERACIONAL
+EVONEXUS
+EvoNexus — O time de IA que opera o seu negócio
+O Evo CRM gerencia o atendimento. O EvoNexus opera o negócio inteiro — financeiro,
+comunidade, social media, projetos, jurídico, RH, produto e mais.
+O EvoNexus é um workspace multi-agente open source que roda sobre o Claude Code.
+Em vez de um chatbot genérico, você tem 38 agentes especializados — cada um com
+domínio isolado, memória persistente, skills próprias e integrações. Eles rodam rotinas
+automáticas no seu horário: relatório financeiro às 7h, triage de email, monitoramento
+de comunidade, analytics de redes sociais. Sem você pedir.
+Não é chatbot. É uma camada de operação. A diferença: chatbot responde quando você
+pergunta. EvoNexus age no horário certo, com os dados certos, e te entrega o resultado.
+Os 38 agentes
+Organizados em duas camadas ortogonais — uma para operação de negócio, outra
+para engenharia de software:
+CAMADA DE NEGÓCIO (17 AGENTES)
+AGENTE COMANDO DOMÍNIO
+Clawdia /clawdia Operações — agenda, emails, tasks, decisões
+Flux /flux Financeiro — Stripe, ERP, fluxo de caixa, relatórios
+Atlas /atlas Projetos — Linear, GitHub, sprints, licensing
+Pulse /pulse Comunidade — Discord, WhatsApp, sentimento, FAQ
+Pixel /pixel Social media — conteúdo, calendar, analytics, imagens
+Sage /sage Estratégia — OKRs, roadmap, análise competitiva
+Nex /nex Vendas — pipeline, propostas, qualificação
+Mako /mako Marketing — campanhas, SEO, brand, email sequences
+Aria /aria RH / Pessoas — recrutamento, onboarding, performance
+Zara /zara Customer Success — triage, escalação, KB, health score
+Lex /lex Jurídico — contratos, NDA, LGPD, risco
+Nova /nova Produto — specs, roadmap, métricas, pesquisa
+Dex /dex Dados / BI — análises, SQL, dashboards, visualizações
+Mentor /mentor Cursos — trilhas, módulos, material didático
+Lumen /lumen-learning Retenção — spaced repetition (SM-2), quizzes, captura
+Kai /kai Pessoal — saúde, hábitos, rotina (domínio isolado)
+Oracle /oracle Conhecimento — onboarding, docs, configuração do workspace
+CAMADA DE ENGENHARIA (21 AGENTES)
+Derivada do projeto open source oh-my-claudecode (MIT, Yeachan Heo). Segue um
+workflow canônico de 6 fases: Discovery → Planning → Solutioning → Build → Verify
+→ Retro.
+AGENTE TIER PAPEL
+Apex Opus Arquiteto — design, tradeoffs, debugging read-only
+Echo Opus Analista — discovery, gaps de requisito, hipóteses
+Compass Opus Planejador — plano tático 3-6 passos com entrevista
+Raven Opus Crítico — desafia planos antes de executar
+Lens Opus Code Reviewer — 2 estágios: spec + qualidade, OWASP, SOLID
+Zen Opus Simplificador — deslop, refactor, clareza
+Vault Opus Segurança — OWASP Top 10, secrets, dependências
+Bolt Sonnet Executor — implementação multi-arquivo precisa
+Hawk Sonnet Debugger — root cause, regressões, stack traces
+Grid Sonnet Testes — TDD, pirâmide de testes, coverage
+Probe Sonnet QA Tester — testes interativos, diagnóstico de flaky
+Oath Sonnet Verificador — evidências de conclusão, critérios de aceite
+Trail Sonnet Tracer — investigação causal, hipóteses concorrentes
+Flow Sonnet Git Master — commits atômicos, rebase, histórico
+Scroll Sonnet Docs — SDKs externos, APIs, referências via web
+Canvas Sonnet Designer — UI/UX para produto (CRM, dashboards)
+Prism Sonnet Cientista — análise estatística formal, hipóteses
+Helm ⭐ Sonnet Orquestrador de ciclo — sequencia, roteia, prioriza (nativo)
+Mirror ⭐ Sonnet Retro — lições aprendidas, post-mortem, memória (nativo)
+Scout Haiku Explorer — busca paralela no codebase (Glob/Grep/AST)
+Quill Haiku Writer — docs técnicas rápidas, README, comentários
+175+ Skills
+Skills são arquivos markdown que ensinam agentes a executar tarefas específicas. Não
+são plugins nem código — qualquer pessoa consegue criar uma nova skill em minutos.
+O workspace vem com ~175 skills prontas organizadas por prefixo:
+PREFIXO CATEGORIA EXEMPLOS
+social- Social media (~17) post-writer, thread-writer, carousel-writer, analytics-report,
+content-calendar
+int- Integrações (~16) int-stripe, int-discord, int-youtube, int-evo-crm, int-evolution-api,
+int-telegram, int-instagram, int-linkedin
+fin- Financeiro (~11) fin-daily-pulse, fin-weekly-report, fin-monthly-close, fin-
+reconciliation
+prod- Produtividade (~9) prod-good-morning, prod-end-of-day, prod-dashboard
+hr- RH / Pessoas (~9) hr-onboarding, hr-recruiting-pipeline, hr-comp-analysis
+legal- Jurídico (~9) legal-review-contract, legal-triage-nda, legal-compliance-check
+ops- Operações (~9) ops-status-report, ops-runbook, ops-risk-assessment
+mkt- Marketing (~8) mkt-campaign-plan, mkt-seo-audit, mkt-email-sequence
+data- Dados / BI (~7) data-analyze, data-build-dashboard, data-statistical-analysis
+pm- Produto (~6) pm-write-spec, pm-metrics-review, pm-roadmap-update
+cs-
+Customer Success
+(~5) cs-ticket-triage, cs-customer-escalation, cs-kb-article
+pulse- Comunidade (~4) pulse-daily, pulse-weekly, pulse-monthly, pulse-faq-sync
+dev- Engenharia (~25) dev-autopilot, dev-plan, dev-verify, dev-ultraqa, dev-release
+Criar uma skill nova é simples: uma pasta em .claude/skills/ com um arquivo
+SKILL.md . Você descreve o que o agente deve fazer em português, sem código. O agente
+aprende na hora.
+Exemplos reais de uso
+Três fluxos que já estão rodando em produção:
+EXEMPLO 1 — PIXEL: POST COM IMAGEM GERADA POR IA
+O agente @pixel recebe a pauta do dia, escreve o copy para
+LinkedIn/Instagram/X, gera a imagem diretamente via ai-image-creator
+(Gemini, FLUX.2, GPT-5 Image ou Riverflow) e monta o calendário editorial da
+semana.
+Skills envolvidas:
+social-content-calendar — planeja os temas da semana com base em
+contexto e histórico
+social-post-writer — escreve o copy adaptado por plataforma (tom,
+tamanho, hashtags)
+social-carousel-writer — estrutura slides para carrossel do LinkedIn
+ai-image-creator — gera a arte: banners, thumbnails, posts com o visual da
+marca
+int-instagram / int-linkedin / int-youtube — puxa métricas reais para
+informar o próximo conteúdo
+Resultado: você abre o dashboard de manhã e encontra o conteúdo da semana
+pronto, com imagens geradas, copy revisado e métricas da semana anterior —
+tudo no mesmo relatório HTML.
+Exemplo de uso PROMPT
+@pixel cria o calendário editorial desta semana para LinkedIn e Instagra
+Tema central: lançamento da versão 2.0 da API.
+Gera 3 posts (segunda, quarta, sexta), um carrossel para quinta
+e as imagens de cada um — usa o estilo visual da marca,
+fundo escuro, tipografia bold, paleta verde e branco.
+EXEMPLO 2 — PULSE: RELATÓRIO AUTOMÁTICO DO DISCORD
+Todo dia às 20h o agente @pulse roda a rotina pulse-daily : varre os canais do
+Discord, identifica perguntas recorrentes, detecta mudanças de sentimento, extrai
+highlights e gera um relatório HTML estruturado.
+Skills envolvidas:
+pulse-daily — coleta e analisa 24h de atividade na comunidade
+discord-get-messages — lê mensagens dos canais configurados via API
+pulse-faq-sync — atualiza o FAQ público com base nas dúvidas mais
+frequentes
+discord-send-message — pode postar o resumo diretamente em um canal
+interno
+O que o relatório entrega:
+Volume de mensagens por canal e comparativo com o dia anterior
+Top perguntas do dia com sugestão de resposta padrão
+Score de sentimento (positivo / neutro / negativo) e tendência
+Membros ativos em destaque e issues que precisam de atenção
+Alertas automáticos quando sentimento cai ou volume spike ocorre
+Na segunda-feira, o pulse-weekly consolida os 7 dias: MAM, crescimento,
+tópicos quentes da semana e ações recomendadas.
+Exemplo de uso PROMPT
+@pulse gera o relatório de hoje do Discord:
+volume por canal, top 5 perguntas recorrentes com sugestão de resposta,
+score de sentimento e qualquer issue que precise de atenção.
+Depois roda o faq-sync e posta o resumo no canal #staff-updates.
+EXEMPLO 3 — INT-EVO-CRM: DADOS DO CRM DIRETO NOS AGENTES
+A skill int-evo-crm conecta qualquer agente do EvoNexus diretamente à API do
+Evo CRM. Isso fecha o loop entre o atendimento (CRM) e a operação do negócio
+(EvoNexus).
+O que você pode fazer:
+Análises de atendimento — pedir ao @dex para analisar volume de conversas,
+tempo médio de resposta e CSAT da semana
+Pipeline de vendas — o @nex puxa oportunidades abertas no CRM e gera um
+resumo do funil com próximos passos
+Customer Success — o @zara identifica clientes com queda de engajamento no
+CRM e sugere ações de retenção
+Relatórios automáticos — o @atlas combina dados do CRM com métricas do
+GitHub/Linear e gera o status semanal do produto
+Coleta de dados com IA — agentes extraem dados estruturados das conversas
+do CRM, classificam por intenção e alimentam análises do @sage
+Exemplo de uso PROMPT
+@dex usando int-evo-crm, analisa as conversas dos últimos 7 dias:
+quantas aberturas, tempo médio de primeira resposta,
+top 5 motivos de contato e CSAT por inbox.
+Gera um dashboard HTML.
+Rotinas automáticas
+Um scheduler Python roda ADWs (Automated Daily Workflows) em horário definido.
+Você configura uma vez, ele roda para sempre:
+HORÁRIO ROTINA AGENTE O QUE ENTREGA
+06:50 Review Todoist @clawdia Tasks organizadas e priorizadas
+07:00 Morning Briefing @clawdia Agenda do dia, emails urgentes, prioridades
+07:15 Email Triage @clawdia Inbox classificado, rascunhos de resposta
+18:00 Social Analytics @pixel Métricas do dia: YouTube, Instagram, LinkedIn
+18:30 Licensing Daily @atlas Instâncias ativas, distribuição geo, versões
+19:00 Financial Pulse @flux MRR, charges, churn + contas a pagar/receber
+20:00 Community Pulse @pulse Relatório Discord/WhatsApp com sentimento
+21:00 End of Day @clawdia Consolidação do dia em log estruturado
+21:30 Dashboard 360° @clawdia Painel unificado de todas as áreas
+Sex 07:30 Financial Weekly @flux Semana a semana: receita, despesas, projeção
+Sex 09:00 Strategy Digest @sage Insights estratégicos de todas as fontes
+Dia 1 Monthly Close @flux Fechamento mensal com P&L e checklist
+Integrações incluídas
+INTEGRAÇÃO TIPO USADO POR
+Google Calendar + Gmail MCP Clawdia — agenda, emails, triage
+GitHub MCP + CLI Atlas — PRs, issues, releases
+Linear MCP Atlas — sprints, backlogs, blockers
+Stripe API Flux — MRR, charges, assinaturas
+Omie / Bling API Flux — ERP, NF-e, contas
+Asaas API Flux — Pix, boleto, cobranças
+Discord API Pulse — canais, mensagens, moderação
+WhatsApp (Evolution) API Pulse — grupos, stats, mensagens
+YouTube API OAuth Pixel — analytics de canal e vídeos
+Instagram API OAuth Pixel — métricas de perfil
+LinkedIn API OAuth Pixel — analytics de empresa/perfil
+Fathom API Clawdia — transcrições, action items
+Todoist CLI Clawdia — tasks, prioridades
+Evo CRM API (int-evo-crm) Dex, Nex, Zara, Atlas — dados do atendimento
+Open source, MIT, roda na sua infra
+EvoNexus é MIT license. Roda na sua máquina ou servidor, com seus dados, suas
+chaves de API. Nenhum dado sai para terceiros além das integrações que você mesmo
+configura.
+Fork e adapte — adicione seus próprios agentes, skills e rotinas em markdown
+Sem vendor lock-in — suporte a 6 providers de LLM: Anthropic, OpenRouter,
+OpenAI, Gemini, AWS Bedrock, Google Vertex AI
+Dashboard web incluso — React + Flask, gerencia tudo: agentes, skills, rotinas,
+relatórios, terminal
+Setup
+Pré-requisitos: Claude Code CLI, Python 3.11+ com uv , Node.js 18+.
+Instalação rápida BASH
+# Opção 1 — instalador interativo (recomendado)
+npx @evoapi/evo-nexus
+# Opção 2 — clone manual
+git clone --depth 1 https://github.com/EvolutionAPI/evo-nexus.git
+cd evo-nexus
+make setup
+O wizard de setup pergunta: nome, empresa, timezone, idioma, qual provider de IA
+usar e quais integrações ativar. No final gera automaticamente:
+config/workspace.yaml — configuração central do workspace
+config/routines.yaml — horários das rotinas automáticas
+config/providers.json — provider de IA ativo (Anthropic por padrão)
+.env — chaves de API (você preenche após o setup)
+CLAUDE.md — arquivo de contexto lido automaticamente pelo Claude Code
+Subir o dashboard e o scheduler BASH
+# Local (macOS / Linux)
+make dashboard-app # abre http://localhost:8080
+make scheduler # inicia as rotinas automáticas
+# VPS — o setup instala um serviço systemd automaticamente
+systemctl status evo-nexus
+systemctl restart evo-nexus
+journalctl -u evo-nexus -f
+Primeiro uso — ponto de entrada obrigatório BASH
+# Abra o Claude Code na pasta do projeto e rode:
+/oracle
+# O Oracle entrevista você sobre o negócio, mapeia as capabilities
+# do workspace para seus problemas e entrega um plano de ativação
+# em fases — você nunca precisa adivinhar o próximo passo.
+Repositório: github.com/EvolutionAPI/evo-nexus — MIT License. Instalação
+documentada, exemplos reais, comunidade ativa.
+Checklist de ativação
+7 de 7? EvoNexus operacional. A partir daqui é iterar: ativar mais integrações, criar skills
+customizadas para o seu negócio e adicionar rotinas no seu horário.
+PRÓXIMO Roadmap — Do zero à produção em 7 dias →
+EVOLUÇÃO
+Níveis de maturidade da operação
+Onde você está e para onde ir a partir daqui.
+NÍVEL 1 — FUNCIONANDO
+Ambiente rodando
+com todos os
+serviços healthy
+1 canal conectado
+(Telegram ou web
+widget)
+1 agente IA
+respondendo
+Dashboard acessível
+Equipe consegue ver
+e responder
+conversas
+Módulos: 0 → 4
+EvoNexus: instalar e rodar
+/oracle
+NÍVEL 2 — ESTRUTURADO
+Produção com SSL
+e reverse proxy
+Canal oficial
+(WhatsApp Cloud
+API)
+Backup automático
+configurado
+Pipelines de vendas
+operando
+Integrações externas
+via API/webhook
+Módulos: 5 → 7
+EvoNexus: rotinas diárias ativas +
+int-evo-crm conectado
+NÍVEL 3 — ESCALANDO
+Múltiplos canais e
+agentes IA
+Observabilidade
+(Langfuse, logs
+estruturados)
+Banco managed ou
+dedicado
+Processor escalado
+horizontalmente
+Modelo de negócio
+validado e recorrente
+Módulos: 5 (escala) + 8
+EvoNexus: 38 agentes ativos, skills
+customizadas, oferta de IA
+gerenciada para clientes
+Você não precisa chegar no Nível 3 para gerar valor. A maioria das operações funciona
+muito bem no Nível 2. Escale só quando o volume exigir.
+CAMINHO RECOMENDADO
+Roadmap: do zero à produção em 7 dias
+Mini roadmap para quem quer ir direto ao ponto.
+DIA 1 Preparação — Ler módulos 0 e 1. Instalar Docker. Provisionar servidor de produção.
+Gerar todas as chaves secretas. Configurar domínio e DNS.
+DIA 2 Setup — Clonar repositório. Configurar .env . Executar setup completo. Validar todos
+os health checks. Trocar senha padrão.
+DIA 3 Primeiro fluxo — Criar inbox web widget. Configurar API key de LLM. Criar agente IA.
+Conectar ao inbox. Testar conversa ponta a ponta.
+DIA 4 Integração — Conectar canal real (Telegram ou web widget). Configurar webhooks de
+saída. Testar handoff IA/humano. Ajustar instruções do agente. Se for usar WhatsApp
+Cloud API oficial, inicie o processo de verificação da empresa na Meta em paralelo
+desde o Dia 1 — pode levar de 5 a 21 dias úteis dependendo da análise da Meta.
+DIA 5 Produção — Configurar reverse proxy + SSL. Subir em produção. Configurar backup
+automático. Executar checklist de segurança.
+DIA 6 Ajustes — Testar com usuários reais. Ajustar comportamento do agente IA. Refinar
+regras de automação. Validar integrações externas.
+DIA 7 Rollout — Executar checklist de validação final. Documentar acessos e configurações.
+Treinar equipe. Abrir para operação real.
+Este roadmap assume dedicação focada. Para operações mais complexas (múltiplos canais,
+integrações customizadas), considere 2-3 semanas de implementação.
+PREMIUM
+Erros que saem caro
+Erros reais que consomem tempo, dinheiro e confiança do cliente.
+ERRO IMPACTO COMO EVITAR
+SECRET_KEY_BASE
+diferente entre serviços
+Tokens inválidos, login
+quebrado, serviços não
+se comunicam
+Usar exatamente a mesma chave em
+auth, CRM e core
+Esquecer WebSocket no
+reverse proxy
+Dashboard não atualiza
+em tempo real, parece
+bugado
+Configurar Upgrade e Connection
+headers no Nginx
+PostgreSQL exposto na
+internet
+Banco invadido, dados
+vazados, ransom
+Manter na rede interna Docker, nunca
+expor porta 5432
+Não configurar debounce
+no Agent Bot
+IA processa mensagem
+por mensagem,
+respostas fragmentadas
+Definir debounce
+_
+time de 2-5
+segundos
+Seed do CRM antes do
+seed do Auth
+CRM não encontra o
+usuário base, seed falha
+silenciosamente
+Sempre executar seed-auth antes de
+seed-crm
+Não testar backup
+restaurando
+Descobrir que o backup
+está corrompido quando
+precisa dele
+Restaurar em ambiente de teste pelo
+menos 1 vez por mês
+Vender "IA ilimitada" sem
+medir custo
+Custo de LLM come
+toda a margem do
+projeto
+Configurar Langfuse, medir custo por
+conversa, precificar com buffer
+Subir tudo sem HTTPS
+Credenciais trafegam em
+texto plano, cookies
+inseguros
+SSL obrigatório em produção — Let's
+Encrypt é gratuito
+EVONEXUS
+Não preencher o .env
+antes de rodar as rotinas
+Rotinas falham
+silenciosamente —
+nenhum relatório é
+gerado
+Configurar pelo menos 1 integração no
+.env antes de ativar o scheduler
+Ativar todas as rotinas de
+uma vez sem testar
+Erros em cascata, difícil
+identificar qual rotina
+falhou
+Ativar uma rotina por vez, validar o
+output antes de adicionar a próxima
+Usar EvoNexus sem o
+CLAUDE.md preenchido
+Agentes sem contexto
+geram outputs genéricos
+e inúteis
+Rodar /oracle primeiro — ele
+preenche o contexto do workspace
+automaticamente
+Não configurar o provider
+de IA antes de usar
+Agentes não respondem
+ou usam o provider
+errado
+Verificar config/providers.json e
+testar com /clawdia bom dia antes
+de ativar rotinas
+Criar skills sem testar o
+trigger
+Agente nunca ativa a
+skill mesmo quando
+deveria
+Testar o trigger manualmente depois de
+criar: invocar o agente com a frase
+exata do description
+CHECKLIST FINAL
+Validou tudo? Pode operar.
+Só considere a implementação concluída quando todos os itens forem "sim".
+9 de 9? Operação pronta. Você tem um sistema real em produção com IA funcional, canal
+conectado e base sustentável para evoluir.
+"O Blueprint não é o destino — é o atalho. A partir daqui, cada projeto é uma iteração sobre
+uma base sólida."
+PRO SUPPORT — PRÓXIMO NÍVEL
+O Blueprint te leva até aqui. Na prática, cada operação tem:
+Problemas específicos de infraestrutura que não estão em nenhum guia
+Decisões de arquitetura que dependem do volume e contexto do negócio
+Integrações que quebram de formas criativas
+Ajustes finos de agentes IA que só quem opera no dia a dia conhece
+O Pro Support é acompanhamento contínuo com quem construiu o ecossistema.
+Revisão de arquitetura, debug em tempo real, orientação de escala e suporte para
+operação de verdade.
+Leia os módulos 0, 1 e 2 para entender o ecossistema e preparar o ambiente
+1
+Execute o módulo 3 para subir o setup base funcional
+2
+Valide com o módulo 4 — primeiro fluxo ponta a ponta
+3
+Aprofunde com os módulos 5 a 7 conforme complexidade do projeto
+4
+Use os módulos 8 a 10 como referência de consulta e operação
+5
+Acesse business.facebook.com e faça login com sua conta pessoal do Facebook
+1
+Clique em Criar conta
+2
+Preencha o nome da empresa (use o nome legal exato — precisa bater com documentos
+oficiais)
+3
+Preencha seu nome, e-mail profissional (domínio próprio, não Gmail/Yahoo)
+4
+Complete dados da empresa: endereço, telefone, site
+5
+Clique em Enviar
+6
+Acesse developers.facebook.com e clique em Começar
+1
+Confirme seus dados e verifique seu telefone
+2
+Vá em My Apps → Create App
+3
+Tipo do app: escolha Business (obrigatório para WhatsApp + Instagram + Messenger)
+4
+Preencha nome do app, e-mail de contato, selecione o Business Portfolio criado
+5
+Clique em Create App
+6
+No Dashboard do app, vá em Add Products
+1
+Encontre WhatsApp e clique em Set up
+2
+Selecione ou crie uma WhatsApp Business Account (WABA)
+3
+Anote o WABA ID
+4
+Vá em WhatsApp Manager → Account Tools → Message Templates
+1
+Clique em Create Template
+2
+Selecione categoria: Marketing, Utility ou Authentication
+3
+Configure header, body, footer e botões
+4
+Envie para aprovação (tipicamente minutos a horas)
+5
+No Dashboard → Add Products → Messenger → Set up
+1
+Ícone do app (1024x1024 PNG)✓
+Política de privacidade em URL pública acessível✓
+Categoria e URL do site preenchidos nas configurações do app✓
+Vídeo screencast mostrando o uso real de cada permissão no app
+✓
+Credenciais de teste para a equipe da Meta acessar e testar
+✓
+Instruções passo a passo para o revisor reproduzir o uso
+✓
+Questionário de tratamento de dados preenchido
+✓
+Verificação da empresa concluída
+✓
+Pelo menos 1 chamada de API bem-sucedida por permissão nos últimos 30 dias✓
+Opt-in: consentimento explícito antes de enviar mensagens iniciadas pelo negócio✓
+Opt-out: respeitar imediatamente pedidos de descadastro
+✓
+Política de privacidade: publicada e acessível, descrevendo tratamento de dados✓
+Sem spam: envio de mensagens não solicitadas em massa resulta em suspensão sem
+recurso
+✓
+Dados sensíveis: não usar templates para solicitar dados financeiros ou de saúde✓
+Qual canal principal? WhatsApp (qual provedor), Telegram, web widget, API?
+1
+Vai usar agentes de IA? Se sim, qual provedor de LLM?
+2
+Ambiente single-server ou distribuído? Tudo no mesmo servidor ou separado?
+3
+Backup automático ou manual? Definir frequência e destino
+4
+Domínio e subdomínios? Ex: app.seudominio.com , api.seudominio.com
+5
+Docker e Docker Compose instalados e funcionando✓
+Git instalado com acesso ao repositório✓
+Portas 3000, 3001, 5173, 5555, 8000, 8080, 5432, 6379 livres
+✓
+Pelo menos 4 GB de RAM disponível para Docker✓
+Canal principal definido (qual canal vai usar primeiro)✓
+Provedor de LLM escolhido (se for usar agentes IA)✓
+Senha forte definida para o banco PostgreSQL✓
+SECRET
+_
+KEY
+_
+BASE gerada (string aleatória de 64+ caracteres)✓
+ENCRYPTION
+_
+KEY gerada (chave Fernet para API keys)✓
+docker compose ps mostra todos os containers como healthy
+✓
+http://localhost:5173 carrega a tela de login
+✓
+Login com credenciais padrão funciona✓
+Dashboard principal carrega sem erros
+✓
+http://localhost:3000/health retorna OK (CRM)✓
+http://localhost:5555/health retorna OK (Core)✓
+http://localhost:8000/health retorna OK (Processor)✓
+Criar bot no Telegram: Abra o Telegram, procure @BotFather , envie /newbot . Defina
+nome e username. Copie o token gerado.
+1
+Criar inbox Telegram: No painel, vá em Settings → Inboxes → New Inbox → Telegram. Cole
+o token do BotFather.
+2
+Configurar API key de LLM: Vá em AI → API Keys → Adicionar. Cole a key do seu
+provedor (OpenAI, Anthropic, etc.).
+3
+Criar agente de IA: AI → Agents → New Agent. Escolha tipo llm , selecione o modelo,
+defina a instrução do sistema.
+4
+Configurar Agent Bot: Settings → Agent Bots → Novo. Selecione provider evo
+_
+ai , aponte
+para o agente criado.
+5
+Conectar bot ao inbox: Editar o inbox Telegram → Agent Bot → Selecionar o bot criado.
+Definir debounce
+_
+time (recomendado: 3 segundos).
+6
+Testar: Abra o Telegram, procure seu bot pelo username, envie uma mensagem. A IA deve
+responder diretamente no Telegram.
+7
+Sempre validar o payload recebido antes de processar
+✓
+Usar X-Service-Token para autenticar chamadas serviço-a-serviço
+✓
+Implementar retry com backoff exponencial para webhooks de saída✓
+Logar payloads de entrada e saída para debugging✓
+Não depender de ordem de eventos — tratar cada evento como independente
+✓
+Usar debounce
+_
+time nos Agent Bots para evitar processamento de mensagens parciais
+✓
+Todas as chaves secretas são únicas e geradas com entropia real✓
+Senha padrão do admin foi trocada✓
+ENABLE
+_
+ACCOUNT
+_
+SIGNUP=false em produção (se não quiser registro público)✓
+CORS configurado só para seu domínio✓
+SSL/TLS em todos os endpoints públicos✓
+PostgreSQL não exposto publicamente (só rede interna Docker)✓
+Redis não exposto publicamente e com senha
+✓
+MFA habilitado para contas admin
+✓
+Variáveis de ambiente não commitadas no Git
+✓
+Backup testado (já restaurou pelo menos uma vez)✓
+Todos os containers estão healthy
+✓
+Backup mais recente tem menos de 24h
+✓
+Disco com pelo menos 20% livre
+✓
+Filas Sidekiq estão processando normalmente (sem acumular)✓
+Nenhum erro 500 recorrente nos logs
+✓
+SSL válido e sem expiração próxima✓
+API keys de LLM com crédito disponível✓
+Objetivo do projeto definido em 1 frase✓
+Canal principal escolhido
+✓
+Provedor de LLM definido e API key gerada✓
+Escopo de atendimento da IA documentado
+✓
+Servidor de produção provisionado
+✓
+Domínio e DNS configurados✓
+Credenciais de canal (WhatsApp, Telegram, etc.) obtidas✓
+Responsável por operação/suporte definido✓
+.env configurado com valores de produção✓
+Chaves secretas geradas e únicas✓
+Banco de dados criado e seedado
+✓
+Todos os serviços rodando e healthy
+✓
+Reverse proxy com SSL configurado✓
+CORS restrito ao domínio correto
+✓
+Registro público desabilitado ( ENABLE
+_
+ACCOUNT
+_
+SIGNUP=false )✓
+Senha admin trocada
+✓
+Backup automático configurado✓
+Firewall configurado (só portas 80 e 443 abertas)✓
+Login no frontend via HTTPS funciona✓
+Inbox criado e canal conectado
+✓
+Mensagem de teste enviada e recebida pelo CRM
+✓
+Agente IA respondendo corretamente
+✓
+Handoff para humano funcionando✓
+Notificações em tempo real chegando no dashboard✓
+WebSocket/ActionCable funcional (conversas atualizam sem refresh)✓
+Webhook de saída configurado e entregando✓
+Acesso ao painel com credenciais do cliente
+✓
+Canal principal conectado e testado
+✓
+Agente IA treinado com contexto do negócio✓
+Equipe do cliente treinada no uso básico✓
+Documento de escopo entregue (o que a IA faz e o que não faz)✓
+Contato de suporte definido e comunicado✓
+SLA documentado e assinado
+✓
+Claude Code instalado e autenticado
+✓
+Setup executado — workspace.yaml , routines.yaml e .env gerados
+✓
+Pelo menos 1 integração configurada no .env (Discord, Stripe, Google, etc.)✓
+Dashboard rodando em localhost:8080 ou via systemd no VPS
+✓
+/oracle executado — plano de ativação em fases gerado✓
+Pelo menos 1 rotina automática rodando no scheduler
+✓
+Primeiro relatório HTML gerado por um agente✓
+Ecossistema compreendido — sabe o papel de cada serviço
+✓
+Ambiente configurado com chaves únicas e seguras✓
+Todos os serviços rodando e healthy
+✓
+Primeiro fluxo ponta a ponta validado (mensagem → IA → resposta)✓
+Canal real conectado e funcional
+✓
+SSL + reverse proxy configurados em produção✓
+Backup automático testado✓
+Checklist de segurança executado
+✓
+Equipe treinada para operação básica✓
