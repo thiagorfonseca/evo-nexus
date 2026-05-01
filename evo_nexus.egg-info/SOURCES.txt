@@ -1,0 +1,11 @@
+LICENSE
+NOTICE.md
+README.md
+pyproject.toml
+setup.py
+evo_nexus.egg-info/PKG-INFO
+evo_nexus.egg-info/SOURCES.txt
+evo_nexus.egg-info/dependency_links.txt
+evo_nexus.egg-info/entry_points.txt
+evo_nexus.egg-info/requires.txt
+evo_nexus.egg-info/top_level.txt

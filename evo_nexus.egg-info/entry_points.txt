@@ -1,0 +1,2 @@
+[console_scripts]
+evonexus = dashboard.backend.knowledge.cli:main
